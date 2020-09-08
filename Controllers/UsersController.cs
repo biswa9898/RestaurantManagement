@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RestaurantManagement.Models;
+using RestaurantManagement.Repository;
 
 namespace RestaurantManagement.Controllers
 {
@@ -15,108 +16,131 @@ namespace RestaurantManagement.Controllers
     { 
     
         readonly log4net.ILog _log4net;
+        IUsersRep db;
 
-        private readonly DemoContext _context;
 
-        public UsersController(DemoContext context)
+        public UsersController(IUsersRep _db)
         {
-            _context = context;
+            db = _db;
             _log4net = log4net.LogManager.GetLogger(typeof(UsersController));
     }
 
         // GET: api/Users
         [HttpGet]
-        public IEnumerable<Users> GetUsers()
+        public IActionResult GetUsers()
         {
-            return _context.Users.ToList();
+            _log4net.Info("UsersController GET ALL ACTION METHODS are called!");
+            try
+            {
+                var det = db.GetDetails();
+                if (det == null)
+                    return NotFound();
+                return Ok(det);
+            }
+            catch (Exception)
+            {
+                return BadRequest();
+            }
         }
 
         // GET: api/Users/5
         [HttpGet("{id}")]
-        public Users GetUsers(string id)
+        public IActionResult GetUser(string id)
         {
-            var users =  _context.Users.Find(id);
-
-            return users;
+            _log4net.Info("UsersController GET BY ID ACTION METHOD is called!");
+            Users data = new Users();
+            try
+            {
+                data = db.GetDetail(id);
+                if (data == null)
+                {
+                    return BadRequest(data);
+                }
+                return Ok(data);
+            }
+            catch (Exception)
+            {
+                return BadRequest(data);
+            }
         }
 
         // PUT: api/Users/5
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPut("{id}")]
-        public IActionResult PutUsers(string id, [FromBody]Users users)
+        public IActionResult Put(string id, [FromBody] Users user)
         {
-            // _context.Entry(users).State = EntityState.Modified;
-            Users u = _context.Users.Find(id);
-            u.FirstName = users.FirstName;
-            u.LastName = users.LastName;
-            u.Password = users.Password;
-            _context.Users.Update(u);
-
-            try
+            _log4net.Info("UsersController PUT ACTION METHOD is called!");
+            if (ModelState.IsValid)
             {
-                _context.SaveChanges();
-                return Ok("Updation Sucessfull");
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!UsersExists(id))
+                try
                 {
-                    return NotFound();
+                    var result = db.UpdateDetail(id, user);
+                    if (result != 1)
+                        return BadRequest(result);
+
+                    return Ok(result);
                 }
-                else
+                catch (Exception ex)
                 {
-                    throw;
+                    if (ex.GetType().FullName ==
+                             "Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException")
+                    {
+                        return NotFound();
+                    }
+
+                    return BadRequest();
                 }
             }
 
+            return BadRequest();
         }
 
         // POST: api/Users
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPost]
-        public async Task<ActionResult<Users>> PostUsers(Users users)
+        public IActionResult Post([FromBody] Users user)
         {
-            _context.Users.Add(users);
-            try
+            _log4net.Info("UsersController POST ACTION METHOD is called!");
+            if (ModelState.IsValid)
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                if (UsersExists(users.Email))
+                try
                 {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+                    var res = db.AddDetail(user);
+                    if (res != null)
+                        return Ok(res);
 
-            return CreatedAtAction("GetUsers", new { id = users.Email }, users);
+                    return NotFound();
+                }
+                catch (Exception)
+                {
+                    return BadRequest();
+                }
+            }
+            return BadRequest();
         }
+
 
         // DELETE: api/Users/5
         [HttpDelete("{id}")]
-        public async Task<ActionResult<Users>> DeleteUsers(string id)
+        public IActionResult Delete(string id)
         {
-            var users = await _context.Users.FindAsync(id);
-            if (users == null)
+            _log4net.Info("UsersController DELETE ACTION METHODS is called!");
+            try
             {
-                return NotFound();
+                var result = db.Delete(id);
+                if (result == 0)
+                {
+                    return BadRequest(result);
+                }
+                return Ok(result);
             }
+            catch (Exception)
+            {
 
-            _context.Users.Remove(users);
-            await _context.SaveChangesAsync();
-
-            return users;
-        }
-
-        private bool UsersExists(string id)
-        {
-            return _context.Users.Any(e => e.Email == id);
+                return BadRequest(id);
+            }
         }
     }
 }

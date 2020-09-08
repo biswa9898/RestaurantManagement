@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RestaurantManagement.Models;
+using RestaurantManagement.Repository;
 
 namespace RestaurantManagement.Controllers
 {
@@ -14,34 +15,57 @@ namespace RestaurantManagement.Controllers
     public class OrdersController : ControllerBase
     {
         readonly log4net.ILog _log4net;
-        private readonly DemoContext _context;
+        IOrdersRep db;
 
-        public OrdersController(DemoContext context)
+        public OrdersController(IOrdersRep _db)
         {
-            _context = context;
+            db = _db;
             _log4net = log4net.LogManager.GetLogger(typeof(OrdersController));
         }
 
         // GET: api/Orders
         [HttpGet]
-        public IEnumerable<Orders> GetOrders()
+        public IActionResult GetOrders()
         {
-            return _context.Orders.ToList();
+            _log4net.Info("OrderController GET ALL ACTION METHODS are called!");
+            try
+            {
+                var det = db.GetDetails();
+                if (det == null)
+                    return NotFound();
+                return Ok(det);
+            }
+            catch (Exception)
+            {
+                return BadRequest();
+            }
         }
 
         // GET: api/Orders/5
         [HttpGet("{id}")]
-        public Orders GetOrders(int id)
+        public IActionResult GetOrder(int id)
         {
-            var orders = _context.Orders.Find(id);
-
-            return orders;
+            _log4net.Info("OrderController GET BY ACTION METHOD is called!");
+            Orders data = new Orders();
+            try
+            {
+                data = db.GetDetail(id);
+                if (data == null)
+                {
+                    return BadRequest(data);
+                }
+                return Ok(data);
+            }
+            catch (Exception)
+            {
+                return BadRequest(data);
+            }
         }
 
         // PUT: api/Orders/5
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
-        [HttpPut("{id}")]
+        /*[HttpPut("{id}")]
         public IActionResult PutOrders(int id, Orders orders)
         {
             Orders o = _context.Orders.Find(id);
@@ -69,38 +93,56 @@ namespace RestaurantManagement.Controllers
 
  
         }
+        */
 
         // POST: api/Orders
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPost]
-        public async Task<ActionResult<Orders>> PostOrders(Orders orders)
+        public IActionResult Post([FromBody] Orders order)
         {
-            _context.Orders.Add(orders);
-            await _context.SaveChangesAsync();
+            _log4net.Info("OrderController POST ACTION METHOD is called!");
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    var res = db.AddDetail(order);
+                    if (res != 0)
+                        return Ok(res);
 
-            return CreatedAtAction("GetOrders", new { id = orders.OrderId }, orders);
+                    return NotFound();
+                }
+                catch (Exception)
+                {
+                    return BadRequest();
+                }
+            }
+            return BadRequest();
         }
+
 
         // DELETE: api/Orders/5
         [HttpDelete("{id}")]
-        public async Task<ActionResult<Orders>> DeleteOrders(int id)
+        public IActionResult Delete(int id)
         {
-            var orders = await _context.Orders.FindAsync(id);
-            if (orders == null)
+            _log4net.Info("OrderController DELETE ACTION METHOD is called!");
+            try
             {
-                return NotFound();
+                var result = db.Delete(id);
+                if (result == 0)
+                {
+                    return BadRequest(result);
+                }
+                return Ok(result);
             }
+            catch (Exception)
+            {
 
-            _context.Orders.Remove(orders);
-            await _context.SaveChangesAsync();
-
-            return orders;
+                return BadRequest(id);
+            }
         }
 
-        private bool OrdersExists(int id)
-        {
-            return _context.Orders.Any(e => e.OrderId == id);
-        }
+
+        
     }
 }

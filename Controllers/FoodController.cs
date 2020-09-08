@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RestaurantManagement.Models;
+using RestaurantManagement.Repository;
 
 namespace RestaurantManagement.Controllers
 {
@@ -14,34 +15,59 @@ namespace RestaurantManagement.Controllers
     public class FoodController : ControllerBase
     {
         readonly log4net.ILog _log4net;
-        private readonly DemoContext _context;
 
-        public FoodController(DemoContext context)
+        IFoodRep db;
+
+
+        public FoodController(IFoodRep _db)
         {
-            _context = context;
+            db = _db;
             _log4net = log4net.LogManager.GetLogger(typeof(FoodController));
         }
 
         // GET: api/Food
         [HttpGet]
-        public IEnumerable<Food> GetFoods()
+        public IActionResult GetFoods()
         {
-            return _context.Foods.ToList();
+            _log4net.Info("FoodController GET ALL ACTION METHODS are called!");
+            try
+            {
+                var det = db.GetDetails();
+                if (det == null)
+                    return NotFound();
+                return Ok(det);
+            }
+            catch(Exception)
+            {
+                return BadRequest();
+            }
         }
 
         // GET: api/Food/5
         [HttpGet("{id}")]
-        public Food GetFood(int id)
+        public IActionResult GetFood(int id)
         {
-            var food = _context.Foods.Find(id);
-            
-            return food;
+            _log4net.Info("FoodController GET BY ID ACTION METHOD is called!");
+            Food data = new Food();
+            try
+            {
+                data = db.GetDetail(id);
+                if (data == null)
+                {
+                    return BadRequest(data);
+                }
+                return Ok(data);
+            }
+            catch (Exception)
+            {
+                return BadRequest(data);
+            }
         }
 
         // PUT: api/Food/5
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
-        [HttpPut("{id}")]
+        /*[HttpPut("{id}")]
         public IActionResult PutFood(int id, Food food)
         {
             Food f = _context.Foods.Find(id);
@@ -70,38 +96,53 @@ namespace RestaurantManagement.Controllers
             }
 
         }
+        */
 
         // POST: api/Food
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPost]
-        public async Task<ActionResult<Food>> PostFood(Food food)
+        public IActionResult Post([FromBody] Food food)
         {
-            _context.Foods.Add(food);
-            await _context.SaveChangesAsync();
+            _log4net.Info("FoodController POST ACTION METHOD is called!");
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    var res = db.AddDetail(food);
+                    if (res != 0)
+                        return Ok(res);
 
-            return CreatedAtAction("GetFood", new { id = food.Id }, food);
+                    return NotFound();
+                }
+                catch (Exception)
+                {
+                    return BadRequest();
+                }
+            }
+            return BadRequest();
         }
 
         // DELETE: api/Food/5
         [HttpDelete("{id}")]
-        public async Task<ActionResult<Food>> DeleteFood(int id)
+        public IActionResult Delete(int id)
         {
-            var food = await _context.Foods.FindAsync(id);
-            if (food == null)
+            _log4net.Info("FoodController DELETE ACTION METHODS is called!");
+            try
             {
-                return NotFound();
+                var result = db.Delete(id);
+                if (result == 0)
+                {
+                    return BadRequest(result);
+                }
+                return Ok(result);
             }
+            catch (Exception)
+            {
 
-            _context.Foods.Remove(food);
-            await _context.SaveChangesAsync();
-
-            return food;
+                return BadRequest(id);
+            }
         }
 
-        private bool FoodExists(int id)
-        {
-            return _context.Foods.Any(e => e.Id == id);
-        }
     }
 }

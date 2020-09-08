@@ -11,8 +11,11 @@ namespace RestaurantManagement.Models
         public DemoContext(DbContextOptions options):base(options)
         { }
 
-        public DbSet<Users> Users { get; set; } 
-        public DbSet<Food> Foods { get; set; }
-        public DbSet<Orders> Orders { get; set; }
+        public DemoContext()
+        { }
+
+        public virtual DbSet<Users> Users { get; set; } 
+        public virtual DbSet<Food> Foods { get; set; }
+        public virtual DbSet<Orders> Orders { get; set; }
     }
 }

@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RestaurantManagement.Models;
+using RestaurantManagement.Repository;
 
 namespace RestaurantManagement
 {
@@ -31,6 +32,9 @@ namespace RestaurantManagement
             services.AddDbContext<DemoContext>(options => { options.UseSqlServer(Configuration.GetConnectionString("Demo")); }
             );
             services.AddSwaggerGen();
+            services.AddScoped<IFoodRep, FoodRep>();
+            services.AddScoped<IOrdersRep, OrdersRep>();
+            services.AddScoped<IUsersRep, UsersRep>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
